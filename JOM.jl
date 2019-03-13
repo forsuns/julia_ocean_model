@@ -1,5 +1,5 @@
 # main program
-# programmed by Kwon Min Sun
+# programmed by 
 # 1st release : 2018-03-13
 
 include("readtopo.jl")
