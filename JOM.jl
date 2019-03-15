@@ -224,12 +224,11 @@ include("poisson.jl")
 			runtime = runtime + dtin
 			warmup = min( runtime/(1.0*24*3600), 1.0 )
 
-		# flow dynamic calculate
-			#for non-linear terms
-				EddyVertical(nx,ny,nz,dz,u,v,rho,kz,az,rho0,g) 
-				EddyHorizontal(nx,ny,nz,dx,dy,u,v,w,ah,kh) 
-				BottomShear(nx,ny,ib,drag,u,v,taubu,taubv) 
-				#SurfaceWindShear(nx,ny,dz,warmup,rho0,az,u,v,taux,tauy) 
+			# flow dynamic calculate
+			EddyVertical(nx,ny,nz,dz,u,v,rho,kz,az,rho0,g) 
+			EddyHorizontal(nx,ny,nz,dx,dy,u,v,w,ah,kh) 
+			BottomShear(nx,ny,ib,drag,u,v,taubu,taubv) 
+			#SurfaceWindShear(nx,ny,dz,warmup,rho0,az,u,v,taux,tauy) 
 			#
 			Hydrostatic(nx,ny,nz,dz,g,p,rho) 
 			#Density(nx,ny,nz,dry,dx,dy,dz,dt,dtin,rho,rhon,B,BN,u,v,w,ah,kz) 
