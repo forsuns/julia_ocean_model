@@ -1,4 +1,4 @@
-# non-linear term. momentum diffusion.
+# momentum diffusion.
 
 	function MomentumDiffusion(nx,ny,nz,dx,dy,dz,dt,dtin,ib,u,v,w,ah,az,dry,land,slip,taubu,diffu,taubv,diffv,diffw)
 		
