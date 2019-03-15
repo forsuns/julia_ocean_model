@@ -319,7 +319,7 @@ include("poisson.jl")
 		end
 		
 	end
-############### simulation loop start
+############### simulation loop end
 	
 	close(csv1)
 	close(csv2)
