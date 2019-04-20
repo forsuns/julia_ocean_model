@@ -140,7 +140,9 @@ include("poisson.jl")
 		#end
 		
 		# read topography from file
-		ReadTopo(ele,ib)
+		ReadTopo(nx,ny,nz,depth,ele,ib,dx,dy,land,dry)
+		# initialize wet and dry
+		WetDry(nx,ny,nz,dx,dy,dz,u,v,w,q,dq,depth,dry,land,atop,abot,ae,aw,an,as,atotal,ib)
 		# open rho.csv
 		fname = "./output/rho.csv"
 		csv1 = open(fname,"w+")
@@ -182,10 +184,6 @@ include("poisson.jl")
 			ele[i,1] = 0.0
 		end
 	
-		# initializing wet and dry
-		@. depth = ele
-		WetDry(nx,ny,nz,dx,dy,dz,u,v,w,q,dq,depth,dry,land,atop,abot,ae,aw,an,as,atotal,ib)
-		
 	# wind-stress forcing
 	taux .= 0.0
 	tauy .= 0.0
@@ -228,7 +226,7 @@ include("poisson.jl")
 			EddyVertical(nx,ny,nz,dz,u,v,rho,kz,az,rho0,g) 
 			EddyHorizontal(nx,ny,nz,dx,dy,u,v,w,ah,kh) 
 			BottomShear(nx,ny,ib,drag,u,v,taubu,taubv) 
-			#SurfaceWindShear(nx,ny,dz,warmup,rho0,az,u,v,taux,tauy) 
+			SurfaceWindShear(nx,ny,dz,warmup,rho0,az,u,v,taux,tauy) 
 			#
 			Hydrostatic(nx,ny,nz,dz,g,p,rho) 
 			#Density(nx,ny,nz,dry,dx,dy,dz,dt,dtin,rho,rhon,B,BN,u,v,w,ah,kz) 
