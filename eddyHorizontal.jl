@@ -2,7 +2,6 @@
 
 	function EddyHorizontal(nx,ny,nz,dx,dy,u,v,w,ah,kh)
 	
-		c0 = 2000.0
 		c1 = 0.1
 		c2 = 0.0
 		term1 = 0.0
@@ -30,7 +29,7 @@
 				term3 = (uNorth-uSouth)/dy[i,j] + (vEast-vWest)/dx[i,j]
 				term3 = 0.5*term3*term3
 				
-				ah[i,j,k] = c2*sqrt(term1+term2+term3) + c0
+				ah[i,j,k] = c2*sqrt(term1+term2+term3) + 5.0
         end
         
         @inbounds for j = 2:ny+1, i = 2:nx+1

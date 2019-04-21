@@ -3,7 +3,7 @@
 	function EddyVertical(nx,ny,nz,dz,u,v,rho,kz,az,rho0,g)
 	
 		vismin = 0.0001
-		vismax = 0.005
+		vismax = 0.05
 		windmix = vismax
 		c1 = 0.15
 		c2 = 0.0

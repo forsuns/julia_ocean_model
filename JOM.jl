@@ -1,6 +1,4 @@
 # main program
-# programmed by Kwon Min Sun
-# 1st release : 2018-03-13
 
 include("readtopo.jl")
 include("eddyVertical.jl")
@@ -21,31 +19,25 @@ include("poisson.jl")
 
 # initialize
 
-	nx = 85
-	ny = 87
-	nz = 13
-	dt = 30.0	# exterior time step
+	nx = 9
+	ny = 15
+	nz = 10
+	dt = 2.0	# exterior time step
 	dtin = dt	# interior time step(not used)
 	nt = trunc(Int64,dtin/dt)
 	g = 9.81			# gravity acceleration
 	rho0 = 1028.0		# background rho
 	warmup = 0.0		# warm up parameter
-	drag = 0.0015		# bottom friction rate
+	drag = 0.100		# bottom friction rate
 	slip = 1.0			# slip-nonslip condition indicator
 	fbeta = 2.2e-11		# coriolis parameter
 	omega = 1.4			# S.O.R parameter
-	epsilon = 0.01			# possion accuracy parameter
+	epsilon = 0.0001			# possion accuracy parameter
 
-	periods = 16.0				# total running time (days)
-	outinter = 6.0/6.0			# output interval (hours)
+	periods = 1.0				# total running time (days)
+	outinter = 1.0/6.0			# output interval (hours)
 	runtime = 0.0
 	nper = 1				# iteration default number
-	
-	# tidal forcing 4 points
-	fele1 = 0.0
-	fele2 = 0.0
-	fele3 = 0.0
-	fele4 = 0.0
 	
 	# initializing variables
 	dx = zeros(Float64, nx+2,ny+2)
@@ -119,30 +111,17 @@ include("poisson.jl")
 	uintegral = zeros(Float64, nx+2,ny+2)
 	vintegral = zeros(Float64, nx+2,ny+2)
 	
-	# read tidal forcing files
-	fname1 = "./input/SouthWest.csv"
-	fname2 = "./input/SouthEast.csv"
-	fname3 = "./input/EastSouth.csv"
-	fname4 = "./input/EastNorth.csv"
-	ftide1 = readcsv(fname1)
-	ftide2 = readcsv(fname2)
-	ftide3 = readcsv(fname3)
-	ftide4 = readcsv(fname4)
-	
-		@. dx = 10000.0
-		@. dy = 10000.0
-		@. dz = 10.0
-		@. f = 1.e-4
+		@. dx = 100.0
+		@. dy = 100.0
+		@. dz = 1.0
+		@. ah = 1.0
+		@. kh = 1.0
 
 		# coriolis parameter setup
-		#@simd for j = 1:ny+2
-		#	f[j] = 1.e-4 + fbeta*real(j)*dy[2,j]
-		#end
+		@. f = 0.0000
 		
 		# read topography from file
-		ReadTopo(nx,ny,nz,depth,ele,ib,dx,dy,land,dry)
-		# initialize wet and dry
-		WetDry(nx,ny,nz,dx,dy,dz,u,v,w,q,dq,depth,dry,land,atop,abot,ae,aw,an,as,atotal,ib)
+		ReadTopo(ele,ib)
 		# open rho.csv
 		fname = "./output/rho.csv"
 		csv1 = open(fname,"w+")
@@ -184,6 +163,10 @@ include("poisson.jl")
 			ele[i,1] = 0.0
 		end
 	
+		# initializing wet and dry
+		@. depth = ele
+		WetDry(nx,ny,nz,dx,dy,dz,u,v,w,q,dq,depth,dry,land,atop,abot,ae,aw,an,as,atotal,ib)
+		
 	# wind-stress forcing
 	taux .= 0.0
 	tauy .= 0.0
@@ -197,9 +180,9 @@ include("poisson.jl")
 	# write h.csv
 		fname = "./output/h.csv"
 		csvfile = open(fname,"w")
-		write(csvfile, ["i, j, dx, dy, depth, land, ib\n"])
+		write(csvfile, ["i, j, depth, land, ib\n"])
 		@inbounds for j = 1:ny+2, i = 1:nx+2
-				write(csvfile, [string.(i),",",string.(j),",",string.(dx[i,j]),",",string.(dy[i,j]),",",string.(depth[i,j]),",",string.(land[i,j]),",",string.(ib[i,j]),"\n"])
+				write(csvfile, [string.(i),",",string.(j),",",string.(depth[i,j]),",",string.(land[i,j]),",",string.(ib[i,j]),"\n"])
 		end
 		close(csvfile)
 	# write dry.csv
@@ -219,72 +202,30 @@ include("poisson.jl")
 ############### simulation loop start
 	@inbounds for n = 1:ntotal
 	
-			runtime = runtime + dtin
-			warmup = min( runtime/(1.0*24*3600), 1.0 )
+		runtime = runtime + dtin
+		warmup = min( runtime/(1.0*24*3600), 1.0 )
 
-			# flow dynamic calculate
+		  q[nx+1,ny+1,1] = q[nx+1,ny+1,1] + ( (10.0 *dt ) / (dx[nx+1,ny+1]*dy[nx+1,ny+1]) ) *rho0*g
+		  #q[nx+1,ny+2,1] = q[nx+1,ny+1,1]
+		  #q[nx+2,ny+1,1] = q[nx+1,ny+1,1]
+		  q[2,2,1] = q[2,2,1] - ( (10.0 *dt ) / (dx[2,2]*dy[2,2]) ) *rho0*g
+		  #q[2,1,1] = q[2,2,1]
+		  #q[1,2,1] = q[2,2,1]
+		# flow dynamic calculate
 			EddyVertical(nx,ny,nz,dz,u,v,rho,kz,az,rho0,g) 
 			EddyHorizontal(nx,ny,nz,dx,dy,u,v,w,ah,kh) 
 			BottomShear(nx,ny,ib,drag,u,v,taubu,taubv) 
-			SurfaceWindShear(nx,ny,dz,warmup,rho0,az,u,v,taux,tauy) 
-			#
 			Hydrostatic(nx,ny,nz,dz,g,p,rho) 
-			#Density(nx,ny,nz,dry,dx,dy,dz,dt,dtin,rho,rhon,B,BN,u,v,w,ah,kz) 
+			SurfaceWindShear(nx,ny,dz,warmup,rho0,az,u,v,taux,tauy) 
+			Density(nx,ny,nz,dry,dx,dy,dz,dt,dtin,rho,rhon,B,BN,u,v,w,ah,kz) 
 			MomentumAdvection(nx,ny,nz,dx,dy,dz,dt,dtin,u,v,w,B,BN,advx,advy,advz) 
 			MomentumDiffusion(nx,ny,nz,dx,dy,dz,dt,dtin,ib,u,v,w,ah,az,dry,land,slip,taubu,diffu,taubv,diffv,diffw) 
 			
-			
-			# tidal forcing
-			rundays = runtime/86400.0
-		
-			lt=length(ftide1)
-			for i = 1:lt-1
-				if (rundays<ftide1[i,1])
-					fele1 = ftide1[i,2]+(ftide1[i+1,2]-ftide1[i,2])*(rundays-ftide1[i,1])/(ftide1[i+1,1]-ftide1[i,1])
-					break
-				end
-			end
-		
-			lt=length(ftide2)
-			for i = 1:lt-1
-				if (rundays<ftide2[i,1])
-					fele2 = ftide2[i,2]+(ftide2[i+1,2]-ftide2[i,2])*(rundays-ftide2[i,1])/(ftide2[i+1,1]-ftide2[i,1])
-					break
-				end
-			end
-		
-			lt=length(ftide3)
-			for i = 1:lt-1
-				if (rundays<ftide3[i,1])
-					fele3 = ftide3[i,2]+(ftide3[i+1,2]-ftide3[i,2])*(rundays-ftide3[i,1])/(ftide3[i+1,1]-ftide3[i,1])
-					break
-				end
-			end
-		
-			lt=length(ftide4)
-			for i = 1:lt-1
-				if (rundays<ftide4[i,1])
-					fele4 = ftide4[i,2]+(ftide4[i+1,2]-ftide4[i,2])*(rundays-ftide4[i,1])/(ftide4[i+1,1]-ftide4[i,1])
-					break
-				end
-			end
-		
-			# tidal forcing at the ocean boundaries
-			dele = (fele2-fele1)/(79-29)
-			fele = fele1
-			for i=29:79
-				q[i,2,1] = fele *rho0*g
-				q[i,1,1] = q[i,2,1]
-				fele = fele + dele
-			end
-
-			dele = (fele4-fele3)/(14-5)
-			fele = fele3
-			for j=5:14
-				q[86,j,1] = fele *rho0*g
-				q[87,j,1] = q[86,j,1]
-				fele = fele + dele
-			end
+		# tidal forcing at the ocean boundaries
+		#	q[2:nx+1,ny+1,1] = -( 0.1*sin( 2.0*pi*(runtime+600.0)/(12.0*3600)) ) *rho0*g
+		#	q[2:nx+1,ny+2,1] = q[2:nx+1,ny+1,1]
+		#	q[2:nx+1,2,1] = -( 0.1*sin( 2.0*pi*(runtime+0.0)/(12.0*3600)) ) *rho0*g
+		#	q[2:nx+1,1,1] = q[2:nx+1,2,1]
 		
 		# solving Poisson equation						
 			Poisson(nx,ny,nz,dx,dy,dz,nt,dt,dtin,g,rho0,omega,epsilon,f,u,v,w,un,vn,wn,uintegral,vintegral,diffu,diffv,diffw,p,q,dq,ele,advx,advy,advz,du,dv,dw,ustar,vstar,wstar,qstar,depth,dry,land,atop,abot,ae,aw,an,as,atotal,ib)
@@ -310,13 +251,12 @@ include("poisson.jl")
 			
 			# screen monitoring
 			println("Data output at time = ", runtime/86400.0 )
-			println("ele, eta, depth[42,25] =>  ", ele[41,25], "   ", q[41,25,1]/(g*rho0),"   ", depth[41,25])
-			println("u[42,25,2], v[42,25,2] =>  ", u[41,25,2], "   ", v[41,25,2])
-			println("diffu[42,25,2], diffv[42,25,2] =>  ", diffu[41,25,2], "   ", diffv[41,25,2])
+			println("ele, eta, depth[6,9] =>  ", ele[6,9], "   ", q[6,9,1]/(g*rho0),"   ", depth[6,9])
+			println("u[6,9,2], v[6,9,2] =>  ", u[6,9,2], "   ", v[6,9,2])
 		end
 		
 	end
-############### simulation loop end
+############### simulation loop start
 	
 	close(csv1)
 	close(csv2)
