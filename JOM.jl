@@ -1,4 +1,6 @@
 # main program
+# programmed by Kwon Min Sun
+# 1st release : 2018-03-13
 
 include("readtopo.jl")
 include("eddyVertical.jl")
