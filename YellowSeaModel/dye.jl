@@ -1,4 +1,4 @@
-# density advection
+# material transport equation
 
 	function Dye(nx,ny,nz,dry,dx,dy,dz,dt,dtin,dye,dyen,B,BN,u,v,w,ah,kz,ib,CuPos,CuNeg,CvPos,CvNeg,CwPos,CwNeg)
 		
